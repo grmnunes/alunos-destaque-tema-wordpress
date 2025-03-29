@@ -11,9 +11,7 @@
  */
 function initialize() {
 	$files = [
-		'plugins/acf-gallery/acf-gallery.php',
 		'plugins/acf-options-page/acf-options-page.php',
-		'plugins/acf-repeater/acf-repeater.php',
 		'setup/assets.php',
 		'setup/acf.php',
 		'setup/core.php',

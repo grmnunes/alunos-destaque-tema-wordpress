@@ -20,67 +20,35 @@ function _theme_load_ajax() {
 	echo $script;
 }
 add_action( 'wp_footer', '_theme_load_ajax' );
-// phpcs:enabled WordPress.Security.EscapeOutput.OutputNotEscaped
 
-/**
- * Renderiza o código do analytics salvo pelo ACF no admin
- *
- * @return false|string
- */
-function _theme_render_analytics() {
-	if ( function_exists( 'get_field' ) ) {
-		$codeAnalytics = get_field( 'analytics_code', 'option' );
-		if ( ! empty( $codeAnalytics ) ) {
-			ob_start();
-			?>
-            <?php // phpcs:ignore WordPress.WP.EnqueuedResources.NonEnqueuedScript ?>
-			<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo esc_attr( $codeAnalytics ); ?>">
-			</script>
-			<script>
-				window.dataLayer = window.dataLayer || [];
-				function gtag(){dataLayer.push(arguments);}
-				gtag('js', new Date());
+function _theme_get_awards() {
 
-				gtag('config', '<?php echo esc_attr( $codeAnalytics ); ?>');
-			</script>
-			<?php
+    $cache_key = 'awards_data_cache';
+    $cached_data = get_transient( $cache_key );
 
-			return ob_get_clean();
-		}
-	}
-}
+    if ( $cached_data ) {
+        return $cached_data;
+    }
 
-/**
- * Retorna imagem destacada, caso não tenha ele retorna o placeholder
- *
- * @param int|null $postId ID do post current.
- * @return false|mixed|string|null
- */
-function _theme_get_thumbnail( int $postId = null ) {
-	$thumb = get_field( 'placeholder', 'options' );
-	if ( null !== $postId ) {
-		if ( has_post_thumbnail( $postId ) ) {
-			$thumb = get_the_post_thumbnail_url( $postId );
-		}
-	}
+    $response = wp_remote_get( SME_API_BASE_URL . '/awards', [
+        'headers' => [
+            'Authorization' => 'Bearer ' . SME_API_TOKEN
+        ],
+        'timeout' => 10,
+    ]);
 
-	return $thumb;
-}
+    if ( is_wp_error( $response ) ) {
+        return false;
+    }
 
-/**
- * Retorna a logo principal
- *
- * @return mixed|null
- */
-function _theme_get_logo() {
-	return get_field( 'logo', 'options' );
-}
+    $body = wp_remote_retrieve_body( $response );
+    $data = json_decode( $body, true );
 
-/**
- * Retorna a logo do rodapé
- *
- * @return mixed|null
- */
-function _theme_get_footer_logo() {
-	return get_field( 'footer_logo', 'options' );
+    if ( !$data ) {
+        return false;
+    }
+
+    set_transient( $cache_key, $data, 2 * HOUR_IN_SECONDS );
+
+    return $data;
 }
